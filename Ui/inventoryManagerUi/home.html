@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory Management</title>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+</head>
+<body>
+  <div class="container">
+    <h1>Inventory Management</h1>
+
+    <!-- Input Form -->
+    <div class="form-section">
+      <input type="datetime-local" style="pointer-events: none;" id="dateTimeInp" placeholder="Date & Time">
+      <input type="text" id="uidInp"  style="pointer-events: none;" placeholder="UID">
+      <input type="text" id="nameInp" placeholder="Name">
+      <input type="number" id="purchasedPriceInp" placeholder="purchase price">
+      <input type="number" step="0.01" id="displayPriceInp" placeholder="Display Price">
+      <input type="number" step="0.01" id="finalPriceInp" placeholder="Final Price">
+      <input type="number" id="itemCountInp" value="0" placeholder="Item Count">
+      <button id="addBtn" onclick="add()">Add</button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="search-section">
+      <input type="text" id="searchInp" placeholder="Search inventory...">
+    </div>
+
+    <!-- Inventory Table -->
+    <table id="inventoryTable">
+      <thead>
+        <tr>
+          <th>Date & Time</th>
+          <th>UID</th>
+          <th>Name</th>
+          <th>Purchased Price</th>
+          <th>Display Price</th>
+          <th>Final Price</th>
+          <th>Item Count</th>
+        </tr>
+      </thead>
+      <tbody id="inventoryTableTBody">
+        <!-----
+        <tr>
+          <td>2025-08-13 10:30</td>
+          <td>UID001</td>
+          <td>Item A</td>
+          <td>150.50</td>
+          <td>140.00</td>
+          <td>20</td>
+        </tr>
+        <tr>
+          <td>2025-08-13 11:00</td>
+          <td>UID002</td>
+          <td>Item B</td>
+          <td>99.99</td>
+          <td>89.50</td>
+          <td>15</td>
+        </tr>
+        <tr>
+          <td>2025-08-12 16:45</td>
+          <td>UID003</td>
+          <td>Item C</td>
+          <td>250.00</td>
+          <td>230.00</td>
+          <td>10</td>
+        </tr>
+    -->
+      </tbody>
+    </table>
+
+
+    <!-----item details-->
+    <!-- Popup Modal -->
+<div id="itemModalWindowDiv" class="itemModalWindowDiv modal" style="display: none;">
+  <div class="modal-content">
+    <h2>Item Details</h2>
+    <input type="datetime-local" id="modalDateTimeInp">
+    <input type="text" id="modalUidInp" readonly>
+    <input type="text" id="modalNameInp" placeholder="Name">
+    <input type="text" id="modalPurchasedInp" placeholder="purchased price">
+    <input type="number" step="0.01" id="modalDisplayPriceInp" placeholder="Display Price">
+    <input type="number" step="0.01" id="modalFinalPriceInp" placeholder="Final Price">
+    <input type="number" id="modalItemCountInp" placeholder="Item Count">
+    <div class="modal-actions">
+      <button id="modalSaveBtn" onclick="saveItem()">Save</button>
+       <button id="modalRemoveBtn" onclick="removeItem()" style="background: red;">Remove</button>
+        <button  onclick="askBarCodeCount()" style="background: rgb(4, 161, 197);">Print Barcode</button>
+    </div>
+  </div>
+</div>
+  </div>
+
+
+  <!------------------enter barcode count-->
+  <div id="printBarCodeWindowDiv" class="itemModalWindowDiv modal" style="display: none;">
+  <div class="modal-content">
+    <h2>Enter total barcode</h2>
+    <input type="number" id="barcodePrintCountInp" placeholder="within 1 to 100">
+    <div class="modal-actions">
+        <button id="printBarCodeBtn" onclick="printBarCode()" style="background: rgb(225, 169, 0);">Print</button>
+        <button  onclick='document.getElementById("printBarCodeWindowDiv").style.display="none";' style="background: rgb(0, 0, 0);color:white;">Close</button>
+    </div>
+  </div>
+  </div>
+
+
+  <!-- Floating Barcode Mode Button -->
+<button id="barcodeModeBtn" style="color: white;" onclick="barcodeModeF()">+</button>
+
+
+
+  <script>
+//variables
+let itemSearchList;
+let serialBuffer = ""; // temporary buffer
+let barcodeMode = 0; // 0 = green (inactive), 1 = red (active)
+let printBarCodeWindowDiv_visible=0;
+
+// --- Variable Definitions ---
+let dateTimeInp;
+let uidInp;
+let nameInp;
+let purchasedPriceInp;
+let displayPriceInp;
+let finalPriceInp;
+let itemCountInp;
+let addBtn;
+let searchInp;
+let inventoryTable;
+let inventoryTableTBody;
+
+
+
+// Declare variables
+// =====================
+let itemModalWindowDiv;
+let modalDateTimeInp;
+let modalUidInp;
+let modalNameInp;
+let modalPurchasedInp;
+let modalDisplayPriceInp;
+let modalFinalPriceInp;
+let modalItemCountInp;
+let modalSaveBtn;
+let modalRemoveBtn;
+
+
+let barcodeModeBtn;
+
+let printBarCodeBtn;
+let printBarCodeWindowDiv;
+
+let barcodePrintCountInp;
+
+    window.onload=()=>{
+
+
+// --- Variable Declarations ---
+dateTimeInp = document.getElementById("dateTimeInp");
+uidInp = document.getElementById("uidInp");
+nameInp = document.getElementById("nameInp");
+purchasedPriceInp=document.getElementById("purchasedPriceInp");
+displayPriceInp = document.getElementById("displayPriceInp");
+finalPriceInp = document.getElementById("finalPriceInp");
+itemCountInp = document.getElementById("itemCountInp");
+addBtn = document.getElementById("addBtn");
+searchInp = document.getElementById("searchInp");
+inventoryTable = document.getElementById("inventoryTable");
+inventoryTableTBody=document.getElementById("inventoryTableTBody");
+
+
+
+
+    itemModalWindowDiv    = document.getElementById("itemModalWindowDiv");
+    modalDateTimeInp      = document.getElementById("modalDateTimeInp");
+    modalUidInp           = document.getElementById("modalUidInp");
+    modalNameInp          = document.getElementById("modalNameInp");
+    modalPurchasedInp=document.getElementById("modalPurchasedInp");
+    modalDisplayPriceInp  = document.getElementById("modalDisplayPriceInp");
+    modalFinalPriceInp    = document.getElementById("modalFinalPriceInp");
+    modalItemCountInp     = document.getElementById("modalItemCountInp");
+    modalSaveBtn          = document.getElementById("modalSaveBtn");
+    modalRemoveBtn=document.getElementById("modalRemoveBtn");
+
+    barcodeModeBtn = document.getElementById("barcodeModeBtn");
+
+    printBarCodeBtn=document.getElementById("printBarCodeBtn");
+    printBarCodeWindowDiv=document.getElementById("printBarCodeWindowDiv");
+    barcodePrintCountInp=document.getElementById("barcodePrintCountInp");
+
+
+let now = new Date();
+dateTimeInp.value = now.toISOString().slice(0, 16);
+uidInp.value=generateUid();
+
+
+
+searchItems("");
+
+//event lisenners
+    searchInp.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault(); // prevents form submit if inside a form
+        console.log("Enter pressed: Searching for", searchInp.value);
+        // Call your search function here
+        searchItems(searchInp.value);
+    }
+});
+
+
+window.addEventListener("click", (event) => {
+    const itemModal = document.getElementById("itemModalWindowDiv");
+    if (event.target === itemModal) {
+        itemModal.style.display = "none";
+    }
+});
+
+
+
+
+
+
+    }//window onload end
+
+
+window.addEventListener("keydown", (e) => {
+    // Only process barcode input if barcodeMode is active
+    if (barcodeMode !== 1) return; 
+
+    if (e.key >= "0" && e.key <= "9") {
+        serialBuffer += e.key;
+    } else if (e.key === "Enter") {
+        if (serialBuffer.length === 10) {
+            const uid = serialBuffer;
+            serialBuffer = "";
+            addItemQty(uid); // process barcode
+        } else {
+            serialBuffer = ""; // reset invalid input
+        }
+    } else if (e.key === "Escape") {
+        serialBuffer = "";
+    }
+
+    // prevent the Enter from doing anything else
+    if (e.key === "Enter") e.preventDefault();
+});
+
+
+
+
+
+
+    function add(){
+if (
+    !dateTimeInp.value ||
+    !uidInp.value ||
+    !nameInp.value ||
+    !purchasedPriceInp.value ||
+    !displayPriceInp.value ||
+    !finalPriceInp.value
+) {
+    alert("Some fields are missing");
+    return false;
+}
+
+addBtn.innerHTML="Adding..";
+$.post('php/addNewItem.php',
+{
+    dateTime: dateTimeInp.value,
+    uid: uidInp.value,
+    name: nameInp.value,
+    purchasedPrice:purchasedPriceInp.value,
+    displayPrice: displayPriceInp.value,
+    finalPrice: finalPriceInp.value,
+    itemCount: itemCountInp.value
+},
+(data)=>{
+    console.log("add():"+data);
+
+    if(data=="success"){
+      addBtn.innerHTML="Added";
+      setTimeout(()=>{
+let now = new Date();
+dateTimeInp.value = now.toISOString().slice(0, 16);
+uidInp.value = generateUid();
+nameInp.value = "";
+purchasedPriceInp.value="";
+displayPriceInp.value = "";
+finalPriceInp.value = "";
+itemCountInp.value = "0";
+addBtn.innerHTML="Add";
+searchItems("");
+      },2000);
+    }else{
+alert(data);
+addBtn.innerHTML="Add";
+    }
+});
+
+
+    }
+
+
+function searchItems(keyword) {
+    $.getJSON('php/searchItem.php', { keyword: keyword }, function(data) {
+        console.log("searchItems(keyword):", data);
+        itemSearchList=data;
+
+        inventoryTableTBody.innerHTML = "";
+        
+        data.forEach((item, i) => {
+            inventoryTableTBody.innerHTML += `
+                <tr onclick="showItemDetails(${item.uid})">
+                    <td>${item.dateTime}</td>
+                    <td>${item.uid}</td>
+                    <td>${item.name}</td>
+                    <td>${item.purchasedPrice}</td>
+                    <td>${item.displayPrice}</td>
+                    <td>${item.finalPrice}</td>
+                    <td>${item.itemCount}</td>
+                </tr>
+            `;
+        });
+    });
+}
+
+function showItemDetails(uid) {
+    // Find the item in the array
+    const item = itemSearchList.find(i => i.uid == uid);
+
+    if (!item) {
+        alert("Item not found!");
+        return;
+    }
+
+    // Fill the modal fields with item details
+    modalDateTimeInp.value     = item.dateTime;
+    modalUidInp.value          = item.uid;
+    modalNameInp.value         = item.name;
+    modalPurchasedInp.value=item.purchasedPrice;
+    modalDisplayPriceInp.value = item.displayPrice;
+    modalFinalPriceInp.value   = item.finalPrice;
+    modalItemCountInp.value    = item.itemCount;
+
+    // Show the modal
+    itemModalWindowDiv.style.display = "flex";
+
+    //current working item
+    currentWorkingItemUid=uid;
+}
+
+
+function saveItem(){
+
+let item={};
+
+ if (
+        !modalDateTimeInp.value ||
+        !modalUidInp.value ||
+        !modalNameInp.value ||
+        !modalDisplayPriceInp.value ||
+        !modalFinalPriceInp.value ||
+        !modalItemCountInp.value
+    ) {
+        alert("Some fields are missing.");
+        return false; // validation failed
+    }
+item.dateTime     = modalDateTimeInp.value;
+item.uid          = modalUidInp.value;
+item.name         = modalNameInp.value;
+item.displayPrice = parseFloat(modalDisplayPriceInp.value);
+item.finalPrice   = parseFloat(modalFinalPriceInp.value);
+item.itemCount    = parseInt(modalItemCountInp.value);
+
+
+modalSaveBtn.innerHTML="Saving";
+$.post('php/updateItem.php',
+{item:item},
+(data)=>{
+console.log("saveItem():"+data);
+if(data=="success"){
+modalSaveBtn.innerHTML="Done";
+setTimeout(()=>{
+    modalSaveBtn.innerHTML="Save";
+    itemModalWindowDiv.style.display = "none";
+    searchItems("");
+},2000);
+}else{
+alert(data);
+modalSaveBtn.innerHTML="Save";
+}
+});
+
+}
+
+function removeItem() {
+    const currentWorkingUid = modalUidInp.value;
+
+    if (!currentWorkingUid) {
+        alert("No item selected to remove.");
+        return false;
+    }
+
+    if (!confirm("Are you sure you want to remove this item?")) {
+        return false; // user canceled
+    }
+
+    modalSaveBtn.innerHTML = "Removing...";
+
+    $.post('php/removeItem.php', { uid: currentWorkingUid }, (data) => {
+        console.log("removeItem():" + data);
+        if (data == "success") {
+            modalSaveBtn.innerHTML = "Done";
+            setTimeout(() => {
+                modalSaveBtn.innerHTML = "Save";
+                itemModalWindowDiv.style.display = "none";
+                searchItems(""); // refresh table
+            }, 1500);
+        } else {
+            alert(data);
+            modalSaveBtn.innerHTML = "Save";
+        }
+    });
+}
+
+
+function addItemQty(uid) {
+    console.log("Barcode scanned UID:", uid);
+    $.post("php/addItemQty.php", { uid: uid }, (response) => {
+        console.log("Server response:", response);
+        searchItems(""); // refresh table
+    });
+}
+
+function barcodeModeF(){
+    if (barcodeMode === 1) {
+        barcodeMode = 0;
+        barcodeModeBtn.classList.remove("active");
+    }else{
+        barcodeMode = 1;
+    barcodeModeBtn.classList.add("active");
+
+    }
+        console.log("barcode mode:"+barcodeMode);
+}
+
+function askBarCodeCount(){
+
+  itemModalWindowDiv.style.display="none";
+  printBarCodeWindowDiv.style.display="flex";
+
+  setTimeout(()=>{
+    printBarCodeWindowDiv_visible=1;
+    console.log(printBarCodeWindowDiv_visible);
+  },1000);
+  
+}
+
+function printBarCode(){
+
+
+
+if(!currentWorkingItemUid){
+alert("no working item uid found");
+return false;
+}
+
+
+    const item = itemSearchList.find(i => i.uid == currentWorkingItemUid);
+
+    if (!item) {
+        alert("Item not found!");
+        return;
+    }
+
+    if(!barcodePrintCountInp.value){
+       alert("enter number of bar code");
+       return false;
+    }
+    item.qty=barcodePrintCountInp.value;
+
+printBarCodeBtn.innerHTML="Printing....";
+
+$.post('php/setBarCodePrintData.php',
+{item:item},
+(data)=>{
+  console.log("printBarCode():"+data);
+  if(data=="success"){
+             let waitingForBarCodePrintInterval=setInterval(()=>{
+              $.get('../billingUi/php/readFileFromDataDir.php',
+              {"fileName":"barCodePrintItemData.txt"},(data)=>{
+                console.log('barCodePrintItemData.txt:'+data);
+                         if(!data){
+                              printBarCodeBtn.innerHTML="Done";
+                              clearInterval(waitingForBarCodePrintInterval);
+                              setTimeout(()=>{
+                                barcodePrintCountInp.value="";
+                                printBarCodeBtn.innerHTML="Print";
+                              },2000);
+                         }
+              }
+              );
+             },5000);
+  }else{
+       alert(data);
+       printBarCodeBtn.innerHTML="Print Barcode";
+  }
+});
+
+
+}
+
+
+
+
+
+
+    //::::::::::::::::::TASK::::::::::::::::::::::::::::::::::::::::::::::::
+function generateUid() {
+    return Date.now().toString().slice(-10); // last 10 digits
+}
+  </script>
+
+
+
+
+
+  <style>
+    body {
+      background-color: #121212;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #ff9800;
+    }
+    .form-section {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    input, button {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    input {
+      background-color: #1e1e1e;
+      color: white;
+    }
+    input::placeholder {
+      color: #bbb;
+    }
+    button {
+      background-color: #ff9800;
+      color: black;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+    button:hover {
+      background-color: #e68900;
+    }
+    .search-section {
+      margin-bottom: 10px;
+    }
+    .search-section input {
+      width: 100%;
+      padding: 10px;
+      background-color: #1e1e1e;
+      color: white;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #1e1e1e;
+    }
+    thead {
+      background-color: #333;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid #444;
+    }
+    tbody tr:hover {
+      background-color: #2a2a2a;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+    /* Modal Overlay */
+.itemModalWindowDiv.modal {
+  display: none; /* Hidden by default */
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7); /* semi-transparent background */
+  justify-content: center;
+  align-items: center;
+  display: flex; /* enable flex centering */
+}
+
+/* Modal Content Box */
+.itemModalWindowDiv .modal-content {
+  background-color: #1e1e1e;
+  padding: 20px;
+  border-radius: 10px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+/* Modal Header */
+.itemModalWindowDiv h2 {
+  text-align: center;
+  color: #ff9800;
+  margin: 0 0 10px 0;
+}
+
+/* Modal Inputs */
+.itemModalWindowDiv input {
+  background-color: #2a2a2a;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px;
+  font-size: 14px;
+}
+
+/* Modal Buttons */
+.itemModalWindowDiv .modal-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.itemModalWindowDiv button {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.itemModalWindowDiv #modalSaveBtn {
+  background-color: #ff9800;
+  color: black;
+}
+
+.itemModalWindowDiv #modalSaveBtn:hover {
+  background-color: #e68900;
+}
+
+.itemModalWindowDiv #modalCloseBtn {
+  background-color: #555;
+  color: white;
+}
+
+.itemModalWindowDiv #modalCloseBtn:hover {
+  background-color: #777;
+}
+
+
+
+#barcodeModeBtn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  background-color: green;
+  cursor: pointer;
+  z-index: 2000;
+  transition: 0.3s;
+  font-size: 40px;
+}
+#barcodeModeBtn.active {
+  background-color: red;
+}
+
+  </style>
+</body>
+</html>

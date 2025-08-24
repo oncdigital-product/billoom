@@ -1,0 +1,10 @@
+<?php
+$db="127.0.0.1";
+$dbUserName="root";
+$dbPassword="";
+$dbName="oncretaildb";
+$inventoryTbName="inventorytb";
+$saleTable="saletable";
+$withdrawTable="withdrawtable";
+$transactionTable="transactiontable";
+?>

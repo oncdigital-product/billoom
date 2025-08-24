@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pico Trove QR Payment</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+
+<div class="qr-popup" id="qrPopup">
+  <div class="qr-content">
+    <div class="qr-title">Pico Trove</div>
+    <div class="qr-amount" id="totalAmount">Total Amount: ₹<span id="amountSpan"></span></div>
+    <canvas id="qrCanvas"></canvas>
+    <div class="qr-payments">PhonePe | Paytm | GPay</div>
+  </div>
+</div>
+
+<script>
+   let amountSpan;
+
+    window.onload=()=>{
+amountSpan=document.getElementById("amountSpan");
+
+getQrCodeUrl();
+        setInterval(()=>{
+getQrCodeUrl();
+        },5000);
+    }
+
+function getQrCodeUrl(){
+                $.get('php/getQrCodeUrl.php',
+            {},
+            (data)=>{
+                console.log("getQrCodeUrl.php:"+data);
+                if(data!="done"){
+                  
+                data=JSON.parse(data);
+                amountSpan.innerHTML=data.amount;
+                     showQr(data.url);
+                }else{
+                  amountSpan.innerHTML="";
+                    clearCanvas();
+                }
+
+if (data == "done" && localStorage.getItem("lastPaymentQrData") != "done") {
+    localStorage.setItem("lastPaymentQrData", "done");
+    showSuccess();
+}
+
+if (data != "done") {
+    localStorage.setItem("lastPaymentQrData", data);
+}
+
+            });
+}
+
+function showQr(qrText) {
+  const popup = document.getElementById('qrPopup');
+  const canvas = document.getElementById('qrCanvas');
+
+  popup.style.display = 'flex';
+
+
+  // QR code size based on device width
+  const canvasWidth = Math.min(500, window.innerWidth * 0.9);
+
+  QRCode.toCanvas(canvas, qrText, {
+    color: {
+      dark: '#ff1493',
+      light: '#ffffff'
+    },
+    width: canvasWidth
+  }, function (error) {
+    if (error) console.error(error);
+  });
+}
+
+
+
+function clearCanvas() {
+    const canvas = document.getElementById('qrCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function showSuccess() {
+    // Create full-screen board
+    const board = document.createElement('div');
+    board.className = 'full-screen-success';
+    board.innerHTML = '<div class="message">✔ Payment Successful!</div>';
+    document.body.appendChild(board);
+
+    // Trigger animation
+    setTimeout(() => board.classList.add('active'), 10);
+
+    // Remove after 2.5 seconds
+    setTimeout(() => {
+        board.classList.remove('active');
+        setTimeout(() => document.body.removeChild(board), 800);
+    }, 2500);
+}
+
+</script>
+
+<style>
+/* Fullscreen popup */
+.qr-popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #ff9ec0, #ffc0cb, #ff69b4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  flex-direction: column;
+  font-family: 'Arial', sans-serif;
+  color: white;
+  text-align: center;
+}
+
+.qr-content {
+  background: rgb(255, 135, 155);
+  padding: 50px;
+  border-radius: 30px;
+  backdrop-filter: blur(15px);
+  max-width: 95%;
+  box-sizing: border-box;
+}
+
+.qr-title {
+  font-size: 3em;
+  margin-bottom: 30px;
+  font-weight: bold;
+  text-shadow: 2px 2px 5px #ff1493;
+}
+
+.qr-amount {
+  font-size: 2.5em;
+  margin: 20px 0;
+}
+
+.qr-payments {
+  margin-top: 30px;
+  font-size: 2em;
+  word-wrap: break-word;
+}
+
+.qr-close {
+  margin-top: 35px;
+  padding: 20px 40px;
+  background: white;
+  color: #ff1493;
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1.5em;
+  width: 80%;
+  max-width: 300px;
+}
+
+canvas {
+  margin-top: 25px;
+  background: white;
+  border-radius: 25px;
+  padding: 20px;
+  max-width: 100%;
+  height: auto;
+}
+
+
+
+
+
+.full-screen-success {
+  position: fixed;
+  top: 50%;
+  left: -100%;
+  transform: translateY(-50%) scale(0.5);
+  width: 80%;
+  max-width: 800px;
+  height: 200px;
+  background: linear-gradient(135deg, #ff69b4, #ff1493, #ffb6c1);
+  color: white;
+  font-size: 3em;
+  font-weight: bold;
+  border-radius: 30px;
+  text-align: center;
+  line-height: 200px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  z-index: 100000;
+  transition: all 0.6s cubic-bezier(.68,-0.55,.27,1.55);
+  overflow: hidden;
+}
+
+.full-screen-success.active {
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1.1);
+  animation: flashColors 0.8s ease-in-out 2;
+}
+
+.full-screen-success .message {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes flashColors {
+  0% { background: #ff69b4; }
+  25% { background: #ff1493; }
+  50% { background: #ffb6c1; }
+  75% { background: #ff69b4; }
+  100% { background: #ff1493; }
+}
+
+
+
+
+/* Mobile optimization */
+@media (max-width: 1000px) {
+  .qr-content {
+    padding: 40px 20px;
+    border-radius: 20px;
+  }
+
+  .qr-title {
+    font-size: 100px;
+  }
+
+  .qr-amount {
+    font-size: 70px;
+  }
+
+  .qr-payments {
+    font-size: 80px;
+  }
+
+
+
+  canvas {
+    width: 80vw !important;
+    height: 80vw !important;
+  }
+}
+</style>
+
+</body>
+</html>

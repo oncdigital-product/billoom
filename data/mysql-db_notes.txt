@@ -1,0 +1,39 @@
+
+    #INVENTORY DN
+    #	Name	Type	Collation	Attributes	Null	Default	Comments	Extra	Action
+	1	dateTime	datetime			Yes	current_timestamp()			Change Change	Drop Drop	
+	2	uid	bigint(20)			Yes	NULL			Change Change	Drop Drop	
+	3	name	text	utf8mb4_general_ci		Yes	NULL			Change Change	Drop Drop	
+	4	purchasedPrice	float			No	None			Change Change	Drop Drop	
+	5	displayPrice	float			Yes	NULL			Change Change	Drop Drop	
+	6	finalPrice	float			Yes	NULL			Change Change	Drop Drop	
+	7	itemCount	int(11)			No	None			Change Change	Drop Drop	
+
+    
+    
+    #SALE TABLE
+    #	Name	Type	Collation	Attributes	Null	Default	Comments	Extra	Action
+	1	dateTime	datetime			No	None			Change Change	Drop Drop	
+	2	billingUid	bigint(10)			No	None			Change Change	Drop Drop	
+	3	billerName	text	utf8mb4_general_ci		No	None			Change Change	Drop Drop	
+	4	billerId	text	utf8mb4_general_ci		No	None			Change Change	Drop Drop	
+	5	paymentMode	text	utf8mb4_general_ci		No	None			Change Change	Drop Drop	
+	6	billingItemList	longtext	utf8mb4_bin		No	None			Change Change	Drop Drop	
+
+
+    TRANSACTION TABLE
+
+    #	Name	Type	Collation	Attributes	Null	Default	Comments	Extra	Action
+	1	uid Primary	int(11)			No	None		AUTO_INCREMENT	Change Change	Drop Drop	
+	2	dateTime	datetime			No	current_timestamp()			Change Change	Drop Drop	
+	3	invested_balance_before_transaction	float			Yes	NULL			Change Change	Drop Drop	
+	4	invested_balance_transaction_amount	float			Yes	NULL			Change Change	Drop Drop	
+	5	invested_balance_after_transaction	float			Yes	NULL			Change Change	Drop Drop	
+	6	profit_balance_before_transaction	float			No	None			Change Change	Drop Drop	
+	7	profit_transaction_amount	float			No	None			Change Change	Drop Drop	
+	8	profit_balance_after_transaction	float			No	None			Change Change	Drop Drop	
+	9	reason	text	utf8mb4_general_ci		No	None			Change Change	Drop Drop	
+	10	treasurerId	text	utf8mb4_general_ci		No	None			Change Change	Drop Drop	
+
+
+

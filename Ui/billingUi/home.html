@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billing Dashboard</title>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <h1>Billing Dashboard</h1>
+    <div class="biller-info">
+        Biller: <strong id="employeeNameInp">John Doe</strong> | Employee ID: <strong id="employeeIdInp">EMP123</strong>
+    </div>
+
+     <div class="totals">
+        <div>Billing ID: <span id="billingIdSpan"></span></div>
+        <div></div>
+        <div></div>
+        <div></div>
+        <button class="checkout-btn" id="testPrintBtn"  onclick='testPrint()' style="font-weight:bold;border:0px solid black;color:black;background:rgba(0, 0, 0, 0)">Test Print</button>
+    
+        <button class="checkout-btn"  onclick='window.location="";' style="font-weight:bold;border:0px solid black;color:black;background:rgba(0, 0, 0, 0)">New Bill</button>
+    </div>
+
+    <div class="table-container">
+        <table id="billing-table">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Name</th>
+                    <th>MRP</th>
+                    <th>Final Price</th>
+                    <th>Qty</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="itemTableTbody">
+            <!-----
+                <tr>
+                    <td>1</td>
+                    <td>Apple</td>
+                    <td>50</td>
+                    <td class="final">50</td>
+                    <td>
+                        <button onclick="decrementQty(uid)">-</button>
+                        <input type="number" value="1" min="1" id="itemQtyInp_uid" onchange="updateTotals(uid)">
+                        <button onclick="incrementQty(uid)">+</button>
+                    </td>
+                    <td><button class="action-btn" id="removeItemBtn_uid" onclick="removeItem(uid)">Remove</button></td>
+                </tr>
+            -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="totals">
+        <div>Grand MRP: <span id="grand-mrp-span">0</span></div>
+        <div>Grand Final: <span id="grand-final-span">0</span></div>
+        <div>Total Saving: <span id="total-saving-span">0</span></div>
+        <div>GSTN: 0 </div>
+        
+        <button class="checkout-btn" id="checkout-btn" onclick="checkOut('CASH')" style="background: rgb(68, 142, 68);">Cash Pay</button>
+        <button class="checkout-btn" id="checkout-btn" onclick="checkOut('ONLINE')" style="background: black;">Online Pay</button>
+    </div>
+</div>
+
+
+
+<!----------------OVERLAY-->
+
+    <button class="scanBtn" id="scanBtn" onclick="scanModeF()">+</button>
+
+
+<!-- Payment Window -->
+<div class="payment-window" id="payentCollectionStatusWindowDiv" style="display: none;">
+    <div class="payment-content">
+        <h2>Payment status</h2>
+        <div class="amount" >Collectable Amount: <span id="collectableAmountTxtSpan">₹500/-</span></div>
+        <button class="payment-btn" id="paymentCollectedBtn" onclick="saleDone()">COLLECTED</button>
+        <br><br>
+         <button  class="payment-btn payment-cash" style="background: gray;" onclick='payentCollectionStatusWindowDiv.style.display="none";cancellTransaction();'>CANCELL</button>
+    </div>
+</div>
+
+<!-- Cash Collected Modal -->
+<div id="printReceiptWindowDiv" style="display: none;">
+    <div id="cashModalContentDiv">
+        <h2 id="paymentCollectedInfoTxt">--- Collected</h2>
+        <div id="collectedAmountDiv">₹0</div>
+        <button id="printReceiptBtn" class="payment-btn payment-cash" onclick="printReceipt()">PRINT RECEIPT</button>
+        <br>
+        <button id="printReceiptBtn" class="payment-btn payment-cash" style="background: gray;" onclick='window.location="";'>DONE</button>
+    </div>
+</div>
+
+
+
+<script>
+    //variables
+    let uidBuffer = ""; // store scanned characters
+    let itemList=[];
+    let billingItemList=[];// [{"uid":"7865674324","name":"ring","displayPrice":300,"finalPrice":200,"qty":100}]
+    let scanMode=0;
+    let billingId;
+    let paymentMode;
+
+      // ======= Define Section =======
+  let employeeNameInp;
+  let employeeIdInp;
+
+  let itemTableTbody;
+  let grandMRPSpan;
+  let grandFinalSpan;
+  let totalSavingSpan;
+  let checkoutBtn;
+
+  //scan btn
+  let scanBtn;
+
+let collectedAmountDiv;
+let printReceiptBtn;
+
+let printReceiptWindowDiv;
+
+
+
+
+let billingIdSpan;
+
+
+let paymentCollectedInfoTxt;
+
+let collectableAmountTxtSpan;
+let payentCollectionStatusWindowDiv;
+let paymentCollectedBtn;
+
+let testPrintBtn;
+
+  window.onload=()=>{
+    billingId=generateUid();
+  // ======= Assign Section =======
+  employeeNameInp   = document.getElementById('employeeNameInp');
+  employeeIdInp     = document.getElementById('employeeIdInp');
+
+  itemTableTbody    = document.getElementById('itemTableTbody');
+  grandMRPSpan      = document.getElementById('grand-mrp-span');
+  grandFinalSpan    = document.getElementById('grand-final-span');
+  totalSavingSpan   = document.getElementById('total-saving-span');
+  checkoutBtn       = document.getElementById('checkout-btn');
+
+  scanBtn=document.getElementById("scanBtn");
+
+
+  printReceiptWindowDiv=document.getElementById("printReceiptWindowDiv");
+  collectedAmountDiv = document.getElementById('collectedAmountDiv');
+  printReceiptBtn = document.getElementById('printReceiptBtn');
+
+
+
+
+    paymentCollectedInfoTxt=document.getElementById("paymentCollectedInfoTxt");
+
+    payentCollectionStatusWindowDiv=document.getElementById("payentCollectionStatusWindowDiv");
+
+    billingIdSpan=document.getElementById("billingIdSpan");
+    billingIdSpan.innerHTML=billingId;
+    paymentCollectedBtn=document.getElementById("paymentCollectedBtn");
+    collectableAmountTxtSpan=document.getElementById("collectableAmountTxtSpan");
+
+    testPrintBtn=document.getElementById("testPrintBtn");
+
+getItems();
+cancellTransaction();
+  setInterval(()=>{
+    getItems();
+  },60000*10);
+
+
+  //lisenners
+window.addEventListener("keydown", (e) => {
+    // Only process barcode input if barcodeMode is active
+    if (scanMode !== 1) return; 
+
+    if (e.key >= "0" && e.key <= "9") {
+        uidBuffer += e.key;
+    } else if (e.key === "Enter") {
+        if (uidBuffer.length === 10) {
+            const uid = uidBuffer;
+            uidBuffer = "";
+            addItemQty(uid); // process barcode
+        } else {
+            uidBuffer = ""; // reset invalid input
+        }
+    } else if (e.key === "Escape") {
+        uidBuffer = "";
+    }
+
+    // prevent the Enter from doing anything else
+    if (e.key === "Enter") e.preventDefault();
+});
+
+
+// Listen for clicks anywhere on the document
+document.addEventListener("click", function(event) {
+    // Check if the click target is NOT the scanBtn
+    if (!scanBtn.contains(event.target)) {
+        scanModeOff();
+    }
+});
+
+
+
+  }
+
+
+
+  
+function getItems() {
+    $.getJSON('php/searchItem.php', { keyword: ""}, function(data) {
+        console.log("getItems():", data);
+        itemList=data;
+    });
+}
+
+function scanModeF(){
+if(scanMode){
+scanMode=0;
+scanBtn.style.background=" rgb(25, 203, 235)";
+}else{
+scanMode=1;
+scanBtn.style.background=" orange";
+}
+}
+
+function scanModeOff(){
+scanMode=0;
+scanBtn.style.background=" rgb(25, 203, 235)";
+}
+
+
+function addItemQty(uid){
+
+    //first check if item aready exists or its first time scan
+if(billingItemList.some(item=>item.uid==uid)){
+console.log("item aread exists");
+let item=billingItemList.find((item,i)=>item.uid==uid);
+if(!item){
+    alert("scan item not found");
+    return false;
+}
+item.qty++;
+console.log("billingItemList:"+JSON.stringify(billingItemList));
+renderItemTable();
+}else{
+console.log("item first time scan");
+let item=itemList.find((item,i)=>item.uid==uid);
+
+if(!item){
+    alert("scan item not found");
+    return false;
+}
+
+item.qty=1;
+delete item.itemCount;
+billingItemList.push(item);
+console.log("billingItemList:"+JSON.stringify(billingItemList));
+renderItemTable();
+}
+    
+}
+
+function renderItemTable(){
+    itemTableTbody.innerHTML="";
+    let grandMrp=0;
+    let grandFinalPrice=0;
+    billingItemList.forEach((item,i)=>{
+        itemTableTbody.innerHTML+=`<tr>
+                    <td>${i+1}</td>
+                    <td>${item.name}</td>
+                    <td>${item.displayPrice}</td>
+                    <td class="final">${item.finalPrice}</td>
+                    <td>
+                        <button onclick="decrementQty(${item.uid})">-</button>
+                        <input type="number" value="${item.qty}" min="1" id="itemQtyInp_uid" onchange="updateTotals(uid)">
+                        <button onclick="incrementQty(${item.uid})">+</button>
+                    </td>
+                    <td><button class="action-btn" id="removeItemBtn_${item.uid}" onclick="removeItem(${item.uid})">Remove</button></td>
+                </tr>`;
+
+                grandMrp+=item.displayPrice*item.qty;
+                grandFinalPrice+=item.finalPrice*item.qty;
+    });
+
+    grandMRPSpan.innerHTML="₹"+grandMrp+"/-";
+    grandFinalSpan.innerHTML="₹"+grandFinalPrice+"/-";
+    totalSavingSpan.innerHTML="₹"+(grandMrp-grandFinalPrice)+"/-";
+}
+
+function decrementQty(uid){
+let item=billingItemList.find((item,i)=>item.uid==uid);
+if(!item){
+    alert("scan item not found");
+    return false;
+}
+if(item.qty==1){
+console.log("item quantity can not be less then 1");
+return false;
+}
+item.qty--;
+console.log("billingItemList:"+JSON.stringify(billingItemList));
+renderItemTable();
+}
+function incrementQty(uid){
+let item=billingItemList.find((item,i)=>item.uid==uid);
+if(!item){
+    alert("scan item not found");
+    return false;
+}
+
+item.qty++
+console.log("billingItemList:"+JSON.stringify(billingItemList));
+renderItemTable();
+}
+
+function removeItem(uid){
+
+billingItemList=billingItemList.filter(item=>item.uid!=uid);
+console.log("billingItemList:"+JSON.stringify(billingItemList));
+renderItemTable();
+
+}
+
+
+
+function checkOut(mode){
+    if(billingItemList.length==0){
+return false;
+    }
+    paymentMode=mode;
+    if(mode=="CASH"){
+
+let grandFinalPrice=0;
+ billingItemList.forEach((item,i)=>{
+grandFinalPrice+=item.finalPrice*item.qty
+ });
+
+payentCollectionStatusWindowDiv.style.display="flex";
+collectableAmountTxtSpan.innerHTML="₹"+grandFinalPrice+"/-";
+
+
+    }
+
+     if(mode=="ONLINE"){
+        let grandFinalPrice=0;
+ billingItemList.forEach((item,i)=>{
+grandFinalPrice+=item.finalPrice*item.qty
+ });
+
+$.post('php/setPaymentAmount.php',
+{"amount":grandFinalPrice},
+(data)=>{
+    console.log("setPaymentAmount:"+data);
+    if(data=="success"){
+payentCollectionStatusWindowDiv.style.display="flex";
+collectableAmountTxtSpan.innerHTML="₹"+grandFinalPrice+"/-";
+    }else{
+        alert(data);
+        return false;
+    }
+});
+    }
+}
+
+function saleDone(){
+            let grandFinalPrice=0;
+ billingItemList.forEach((item,i)=>{
+grandFinalPrice+=item.finalPrice*item.qty
+ });
+
+let json={"billingUid":billingId,"billerName":"jonh","billerId":"pico6546","billingItemList":billingItemList,"paymentMode":paymentMode};
+paymentCollectedBtn.innerHTML="...";
+$.post('php/saleDone.php',
+{json:json},
+(data)=>{
+    console.log('saleDone():'+data);
+    if(data=="success"){
+     paymentCollectedBtn.innerHTML="COLLECTED";
+     payentCollectionStatusWindowDiv.style.display="none";
+     printReceiptWindowDiv.style.display="flex";
+
+     paymentCollectedInfoTxt.innerHTML=paymentMode;
+     collectedAmountDiv.innerHTML="₹"+grandFinalPrice+"/-";
+    }else{
+        alert(data);
+        paymentCollectedBtn.innerHTML="COLLECTED";
+    }
+});
+
+
+}
+
+function paymentDone(){
+$.get('php/resetPaymentAmount.php',
+{},
+(data)=>{
+    console.log('paymentDone():'+data);
+    if(data!="success"){
+alert(data);
+    }
+
+    waitingForPaymentDiv.style.display="none";
+    printReceiptWindowDiv.style.display="flex";
+
+
+    let grandFinalPrice=0;
+ billingItemList.forEach((item,i)=>{
+grandFinalPrice+=item.finalPrice*item.qty
+ });
+
+ paymentCollectedInfoTxt.innerHTML="Amount Collected";
+collectedAmountDiv.innerHTML="₹"+grandFinalPrice+"/-";
+});
+}
+
+
+
+
+function printReceipt(){
+
+if(billingItemList.length==0){
+alert("no billing item found to print");
+return false;
+}
+
+let json={"billingUid":billingId,"billerName":"Bisa Japanko Singpho","billerId":"pico6546","billingItemList":billingItemList,"paymentMode":paymentMode};
+printReceiptBtn.innerHTML="PRINTING..";
+$.post('php/printReceipt.php',
+{"json":json},
+(data)=>{
+    console.log("printReceipt():"+data);
+    let printingInterval=setInterval(()=>{
+        $.get('php/readFileFromDataDir.php',
+        {"fileName":"receiptPrintData.txt"},
+        (data)=>{
+            console.log("receiptPrintData:"+data);
+            if(!data){
+                clearInterval(printingInterval);
+                printReceiptBtn.innerHTML="DONE";
+                setTimeout(()=>{
+                    printReceiptBtn.innerHTML="PRINT RECEIPT";
+                },2000);
+            }
+        });
+    },5000);
+});
+
+
+
+}
+
+
+
+function testPrint(){
+
+testPrintBtn.innerHTML="Printing";
+
+$.get('php/testPrint.php',
+{},
+(data)=>{
+console.log("testPrint():"+data);
+if(data=="success"){
+let testPrintTestInterval=setInterval(()=>{
+     $.get('php/readFileFromDataDir.php',
+        {"fileName":"receiptPrintData.txt"},
+        (data)=>{
+            console.log("receiptPrintData:"+data);
+            if(!data){
+                clearInterval(printingInterval);
+                testPrintBtn.innerHTML="Done";
+                setTimeout(()=>{
+                    testPrintBtn.innerHTML="Test Print";
+                },2000);
+            }
+        });
+},5000);
+}else{
+alert(data);
+testPrintBtn.innerHTML="Test Print";
+}
+});
+
+}
+
+
+function cancellTransaction(){
+    $.get('php/cancellTransaction.php',
+    {},
+    (data)=>{
+        console.log('cancellTransaction():'+data);
+    });
+}
+
+
+
+    //::::::::::::::::::TASK::::::::::::::::::::::::::::::::::::::::::::::::
+function generateUid() {
+    return Date.now().toString().slice(-10); // last 10 digits
+}
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: #f0f4f8;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+    }
+
+    .container {
+        width: 1000px;
+        max-width: 95%;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+
+    h1 {
+        text-align: center;
+        color: #4e73df;
+        margin-bottom: 5px;
+    }
+
+    .biller-info {
+        text-align: center;
+        font-size: 16px;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .table-container {
+        overflow-y: auto;
+        max-height: 400px; /* scroll if table is too long */
+        margin-bottom: 100px; /* leave space for bottom totals */
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    table th, table td {
+        padding: 12px 10px;
+        text-align: center;
+        border-bottom: 1px solid #ddd;
+    }
+
+    table th {
+        background: #4e73df;
+        color: #fff;
+    }
+
+    table td input[type="number"] {
+        width: 60px;
+        padding: 5px;
+        text-align: center;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+    }
+
+    .totals {
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+        padding: 15px;
+        border-top: 2px solid #4e73df;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        align-items: center;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    }
+
+    .totals div {
+        margin: 5px 10px;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .checkout-btn {
+        background: #1cc88a;
+        color: #fff;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    .checkout-btn:hover {
+        background: #17a673;
+    }
+
+    .action-btn {
+        background: #e74a3b;
+        color: #fff;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+ .scanBtn{
+    position: fixed;
+    width: 30px;
+    height: 30px;
+    background: rgb(25, 203, 235);
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+    border: 0px solid red;
+    border-radius: 15px;
+    bottom: 20px;
+    right: 30px;
+ }
+
+
+/* Cash Collected Modal */
+#printReceiptWindowDiv {
+    display: none;
+    position: fixed;
+    z-index: 1100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#cashModalContentDiv {
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    width: 300px;
+}
+
+#cashModalContentDiv h2 {
+    margin-bottom: 20px;
+    color: #4e73df;
+}
+
+#collectedAmountDiv {
+    font-size: 20px;
+    margin: 20px 0;
+    font-weight: bold;
+}
+
+#printReceiptBtn {
+    padding: 12px 25px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    color: #fff;
+    background: #1cc88a;
+}
+
+#printReceiptBtn:hover {
+    opacity: 0.9;
+}
+
+
+  /* Full screen overlay */
+  .payment-window {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+  }
+
+  .payment-content {
+      background: #fff;
+      padding: 40px 60px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      animation: fadeIn 0.3s ease;
+  }
+
+  .payment-content h2 {
+      color: #4e73df;
+      margin-bottom: 20px;
+      font-size: 28px;
+  }
+
+  .payment-content .amount {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 30px;
+      color: #1cc88a;
+  }
+
+  .payment-content .payment-btn {
+      padding: 12px 30px;
+      font-size: 18px;
+      background: #1cc88a;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+  }
+
+  .payment-content .payment-btn:hover {
+      background: #17a673;
+  }
+
+  @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+  }
+</style>

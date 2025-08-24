@@ -1,0 +1,10 @@
+
+Options -Indexes #prevnt directory listing
+
+RewriteEngine on #prevent direct access from url
+RewriteCond %{HTTP_REFERER} !^http://(www\.)?domain\.ltd [NC] 
+RewriteCond %{HTTP_REFERER} !^http://(www\.)?domain\.ltd.*$ [NC] 
+RewriteRule \.(gif|jpg|txt)$ /messageforcurious [L]
+
+DirectoryIndex home.html index.html index.php
+

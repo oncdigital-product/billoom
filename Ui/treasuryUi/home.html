@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <title>PICO TROVE – Treasury Dashboard</title>
+
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">PICO TROVE</div>
+          <div class="subtitle">Treasury Dashboard</div>
+        </div>
+      </div>
+
+    </header>
+
+    <div class="" style="display: grid;grid-template-columns:auto auto auto auto;gap:20px;">
+            <div class="balance" aria-live="polite">
+        <div class="label">Invested Balance</div>
+        <div class="amount"><span class="rs">₹</span><span id="balance"><span id="investedBalanceTxtSpan"></span> <span class="muted">/-</span></div>
+      </div>
+      <div class="balance" aria-live="polite">
+        <div class="label">Profit Balance</div>
+        <div class="amount"><span class="rs">₹</span><span id="balance"><span id="profitBalanceTxtSpan"></span> <span class="muted">/-</span></div>
+      </div>
+            <div class="balance" aria-live="polite">
+        <div class="label">Cash Balance</div>
+        <div class="amount"><span class="rs">₹</span><span id="balance"><span id="cashBalanceTxtSpan"></span> <span class="muted">/-</span></div>
+      </div>
+      <div class="balance" aria-live="polite">
+        <div class="label">Online Balance</div>
+        <div class="amount"><span class="rs">₹</span><span id="balance"><span id="onlineBalanceTxtSpan"></span> <span class="muted">/-</span></div>
+      </div>
+    </div>
+
+    <h1>Invested balance</h1>
+    <section class="grid" aria-label="Quick Actions">
+      <!-- Withdraw Card -->
+      <div class="card">
+        <h2>Withdraw Amount</h2>
+        <div class="row">
+          <div class="field">
+            <label for="withdraw-amount">Amount (₹)</label>
+            <input id="investedWithdrawAmountInp" type="number" min="1" step="1" placeholder="e.g., 5000" inputmode="numeric" />
+            <input id="investedWithdrawReasonInp" type="text"  placeholder="e.g., write something"  />
+          </div>
+          <button class="btn danger" onclick='investedAmountWithdrawNowClick()' id="investedWithdrawBtn">Withdraw Now</button>
+        </div>
+        <p class="muted" style="margin:6px 0 0">This will deduct amount from invested balance.</p>
+      </div>
+
+      <!-- Deposit Card -->
+      <div class="card">
+        <h2>Deposit Amount</h2>
+        <div class="row">
+          <div class="field">
+            <label for="deposit-amount">Amount (₹)</label>
+            <input id="investedDepositAmountInp" type="number" min="1" step="1" placeholder="e.g., 10000" inputmode="numeric" />
+            <input id="investedDepositReasonInp" type="text"  placeholder="e.g., write something"  />
+          </div>
+          <button class="btn success" id="investedDepositBtn" onclick="investedAmountDepositNowClicked()">Deposit Now</button>
+        </div>
+        <p class="muted" style="margin:6px 0 0">This will add amount into invested balance.</p>
+      </div>
+    </section>
+
+
+
+
+
+
+
+
+    <h1>Profit balance</h1>
+    <section class="grid" aria-label="Quick Actions">
+      <!-- Withdraw Card -->
+      <div class="card">
+        <h2>Withdraw Amount</h2>
+        <div class="row">
+          <div class="field">
+            <label for="withdraw-amount">Amount (₹)</label>
+            <input id="profitWithdrawAmountInp" type="number" min="1" step="1" placeholder="e.g., 5000" inputmode="numeric" />
+            <input id="profitWithdrawReasonInp" type="text"  placeholder="e.g., write something"  />
+          </div>
+          <button class="btn danger" onclick='profitAmountWithdrawNowClicked()' id="profitWithdrawBtn">Withdraw Now</button>
+        </div>
+        <p class="muted" style="margin:6px 0 0">This will deduct amount from profit balance.</p>
+      </div>
+
+      <!-- Deposit Card -->
+      <div class="card">
+        <h2>Profit Amount</h2>
+        <div class="row">
+          <div class="field">
+            <label for="deposit-amount">Amount (₹)</label>
+            <input id="profitDepositAmountInp" type="number" min="1" step="1" placeholder="e.g., 10000" inputmode="numeric" />
+            <input id="profitDepositReasonInp" type="text"  placeholder="e.g., write something"  />
+          </div>
+          <button class="btn success" id="profitDepositBtn" onclick="profitAmountDepositNowClicked()">Deposit Now</button>
+        </div>
+        <p class="muted" style="margin:6px 0 0">This will add amount into profit balance.</p>
+      </div>
+    </section>
+
+
+    <!-- Ledger Table -->
+    <div class="table-wrap" role="region" aria-label="Withdrawer Table">
+      <table>
+        <thead>
+          <tr>
+            <th class="nowrap">Date Time</th>
+            <th class="nowrap">invested_balance_before_transaction</th>
+            <th class="nowrap">invested_balance_transaction_amount</th>
+            <th class="nowrap">invested_balance_after_transaction</th>
+            <th class="nowrap">profit_balance_before_transaction</th>
+            <th class="nowrap">profit_transaction_amount</th>
+            <th class="nowrap">profit_balance_after_transaction</th>
+            <th class="nowrap">reason</th>
+            <th class="nowrap">treasurerId</th>
+          </tr>
+        </thead>
+        <tbody id="transactionListTbody">
+          <!-- Rows will be appended here by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-backdrop" id="popWindowDiv" style="display: none;z-index:2;">
+    <div class="modal" role="dialog" aria-labelledby="modal-title">
+      <header>
+        <h3 id="modal-title">Reason</h3>
+        <button class="btn" aria-label="Close">✕</button>
+      </header>
+      <main>
+        <div class="field">
+          <label for="reason">Reason for this action</label>
+          <textarea id="transactionReasonInp" placeholder="Enter reason (required)"></textarea>
+        </div>
+
+      </main>
+      <footer>
+        <button class="btn" onclick='popWindowDiv.style.display="none";transactionReasonInp.value="";'>Cancel</button>
+        <button class="btn primary" id="performTransactionBtn" onclick='transaction()'>Submit</button>
+      </footer>
+    </div>
+  </div>
+
+
+
+
+  <!--------------------POP WINDOW-->
+   <!-- Popup HTML -->
+    <div id="paymentPopupWinDiv" class="popup" style="display: none;">
+        <div class="popup-content" id="paymentPopupWinConDiv">
+            <h2 style="color: black;">Transaction Mode</h2>
+            <button class="cash-btn" onclick="selectTransactionType('CASH')">CASH</button>
+            <button class="online-btn" onclick="selectTransactionType('ONLINE')">ONLINE</button>
+        </div>
+    </div>
+
+  <script>
+// =========================
+// Global Element References
+// =========================
+let transactionMode="";
+let financialData;
+let transactionList=[];
+let transactionType;
+let paymentPopupWinDivActive=false;
+
+// --- Balance Section ---
+let balance;              // <span id="balance">
+let investedBalanceTxtSpan;       // <span id="investedBalanceTxtSpan">
+let profitBalanceTxtSpan;
+
+
+// --- Ledger Table Section ---
+let transactionListTbody;     // <tbody id="transactionListTbody">
+
+// --- Invested Balance Elements ---
+let investedWithdrawAmountInp;
+let investedWithdrawReasonInp;
+let investedWithdrawBtn;
+let investedDepositAmountInp;
+let investedDepositReasonInp;
+let investedDepositBtn;
+
+// --- Profit Balance Elements ---
+let profitWithdrawAmountInp;
+let profitWithdrawReasonInp;
+let profitWithdrawBtn;
+let profitDepositAmountInp;
+let profitDepositReasonInp;
+let profitDepositBtn;
+
+
+
+let treasurerName="Bisa Japanko";
+let treasurerId="PICO3423";
+let currentTransactionMode="withdraw";
+let currentTransactionAmount=0;
+
+
+let paymentPopupWinDiv;
+let paymentPopupWinConDiv;
+
+
+let cashBalanceTxtSpan;
+let onlineBalanceTxtSpan;
+
+
+window.onload=()=>{
+      // Balance
+    balance              = document.getElementById("balance");
+    investedBalanceTxtSpan       = document.getElementById("investedBalanceTxtSpan");
+    profitBalanceTxtSpan=document.getElementById("profitBalanceTxtSpan");
+
+
+    // Ledger Table
+    transactionListTbody     = document.getElementById("transactionListTbody");
+
+    // --- Invested Balance ---
+    investedWithdrawAmountInp = document.getElementById("investedWithdrawAmountInp");
+    investedWithdrawReasonInp = document.getElementById("investedWithdrawReasonInp");
+    investedWithdrawBtn       = document.getElementById("investedWithdrawBtn");
+
+    investedDepositAmountInp  = document.getElementById("investedDepositAmountInp");
+    investedDepositReasonInp  = document.getElementById("investedDepositReasonInp");
+    investedDepositBtn        = document.getElementById("investedDepositBtn");
+
+    // --- Profit Balance ---
+    profitWithdrawAmountInp   = document.getElementById("profitWithdrawAmountInp");
+    profitWithdrawReasonInp   = document.getElementById("profitWithdrawReasonInp");
+    profitWithdrawBtn         = document.getElementById("profitWithdrawBtn");
+
+    profitDepositAmountInp    = document.getElementById("profitDepositAmountInp");
+    profitDepositReasonInp    = document.getElementById("profitDepositReasonInp");
+    profitDepositBtn          = document.getElementById("profitDepositBtn");
+
+    paymentPopupWinDiv=document.getElementById("paymentPopupWinDiv");
+    paymentPopupWinConDiv=document.getElementById("paymentPopupWinConDiv");
+
+
+    cashBalanceTxtSpan = document.getElementById("cashBalanceTxtSpan");
+    onlineBalanceTxtSpan = document.getElementById("onlineBalanceTxtSpan");
+
+    //INIT_____________
+    getFinancialData();
+    getFirst100Transaction();
+    setInterval(()=>{
+        getFinancialData();
+        getFirst100Transaction();
+    },10000);
+
+
+
+    //add event lisenners
+     document.addEventListener("click", function (event) {
+        if (paymentPopupWinDivActive) {
+            // Check if popup is open and click is outside the popup container
+            if (!paymentPopupWinConDiv.contains(event.target)) {
+                paymentPopupWinDiv.style.display = "none";
+                paymentPopupWinDivActive = false; // Reset flag
+            }
+        }
+    });
+}
+
+
+function getFinancialData(){
+    $.get('php/getBalance.php',
+    {},
+    (data)=>{
+        console.log('getBalance():'+data);
+        financialData=JSON.parse(data);
+        investedBalanceTxtSpan.innerHTML=financialData.investedBalance;
+        profitBalanceTxtSpan.innerHTML=financialData.profitBalance;
+        cashBalanceTxtSpan.innerHTML=financialData.balanceInCash;
+        onlineBalanceTxtSpan.innerHTML=financialData.balanceInOnline;
+    });
+}
+
+
+function investedAmountWithdrawNowClick(){
+  if(!investedWithdrawAmountInp.value){
+alert("Please enter withdraw amount");
+return false;
+}
+
+if(!investedWithdrawReasonInp.value){
+alert("Please enter withdraw reason");
+return false;
+}
+
+
+paymentPopupWinDiv.style.display="flex";
+transactionType="investedAmountWithdrawNow";
+setTimeout(()=>{
+  paymentPopupWinDivActive=true;
+},1000);
+
+}
+
+function selectTransactionType(type){
+
+if(transactionType=="investedAmountWithdrawNow"){
+investedAmountWithdrawNow(type);
+}else if(transactionType=="investedAmountDepositNow"){
+investedAmountDepositNow(type);
+}else if(transactionType=="profitAmountWithdrawNow"){
+profitAmountWithdrawNow(type);
+}else if(transactionType=="profitAmountDepositNow"){
+profitAmountDepositNow(type);
+}
+
+}
+
+function investedAmountWithdrawNow(cashOrOnline){
+
+if(!investedWithdrawAmountInp.value){
+alert("Please enter withdraw amount");
+return false;
+}
+
+if(!investedWithdrawReasonInp.value){
+alert("Please enter withdraw reason");
+return false;
+}
+
+investedWithdrawBtn.innerHTML="...";
+$.post('php/investedAmountTransaction.php',
+{amount:-1*investedWithdrawAmountInp.value,
+  reason:profitWithdrawReasonInp.value,
+treasurerId:"PICO7483",
+cashOrOnline:cashOrOnline},
+(data)=>{
+  console.log('investedAmountWithdrawNow():'+data);
+  if(data=="success"){
+     investedWithdrawBtn.innerHTML="Withdraw Now";
+     investedWithdrawAmountInp.value="";
+     investedWithdrawReasonInp.value="";
+     getFinancialData();
+     getFirst100Transaction();
+     paymentPopupWinDiv.style.display="none";
+  }else{
+     alert(data);
+     investedWithdrawBtn.innerHTML="Withdraw Now";
+     paymentPopupWinDiv.style.display="none";
+  }
+  paymentPopupWinDivActive=false;
+});
+
+}
+
+function investedAmountDepositNowClicked(){
+
+
+if(!investedDepositAmountInp.value){
+alert("Please enter deposit amount");
+return false;
+}
+
+if(!investedDepositReasonInp.value){
+alert("Please enter deposit reason");
+return false;
+}
+
+paymentPopupWinDiv.style.display="flex";
+transactionType="investedAmountDepositNow";
+setTimeout(()=>{
+  paymentPopupWinDivActive=true;
+},1000);
+}
+
+
+function investedAmountDepositNow(cashOrOnline){
+
+if(!investedDepositAmountInp.value){
+alert("Please enter deposit amount");
+return false;
+}
+
+if(!investedDepositReasonInp.value){
+alert("Please enter deposit reason");
+return false;
+}
+
+investedDepositBtn.innerHTML="...";
+$.post('php/investedAmountTransaction.php',
+{amount:investedDepositAmountInp.value,
+  reason:investedDepositReasonInp.value,
+treasurerId:"PICO7483",
+cashOrOnline:cashOrOnline},
+(data)=>{
+  console.log('investedAmountWithdrawNow():'+data);
+  if(data=="success"){
+     investedDepositBtn.innerHTML="Withdraw Now";
+     investedDepositAmountInp.value="";
+     investedDepositReasonInp.value="";
+     getFinancialData();
+     getFirst100Transaction();
+     paymentPopupWinDiv.style.display="none";
+  }else{
+     alert(data);
+     investedDepositBtn.innerHTML="Withdraw Now";
+     paymentPopupWinDiv.style.display="none";
+  }
+  paymentPopupWinDivActive=false;
+});
+
+}
+
+
+function profitAmountWithdrawNowClicked(){
+
+if(!profitWithdrawAmountInp.value){
+alert("Please enter withdraw amount");
+return false;
+}
+
+if(!profitWithdrawReasonInp.value){
+alert("Please enter withdraw reason");
+return false;
+}
+
+
+paymentPopupWinDiv.style.display="flex";
+transactionType="profitAmountWithdrawNow";
+setTimeout(()=>{
+  paymentPopupWinDivActive=true;
+},1000);
+}
+
+
+function profitAmountWithdrawNow(cashOrOnline){
+
+if(!profitWithdrawAmountInp.value){
+alert("Please enter withdraw amount");
+return false;
+}
+
+if(!profitWithdrawReasonInp.value){
+alert("Please enter withdraw reason");
+return false;
+}
+
+profitWithdrawBtn.innerHTML="...";
+$.post('php/profitAmountTransaction.php',
+{amount:-1*profitWithdrawAmountInp.value,
+  reason:profitWithdrawReasonInp.value,
+treasurerId:"PICO7483",
+cashOrOnline:cashOrOnline},
+(data)=>{
+  console.log('profitAmountWithdrawNow():'+data);
+  if(data=="success"){
+     profitWithdrawBtn.innerHTML="Withdraw Now";
+     profitWithdrawAmountInp.value="";
+     profitWithdrawReasonInp.value="";
+     getFinancialData();
+     getFirst100Transaction();
+     paymentPopupWinDiv.style.display="none";
+  }else{
+     alert(data);
+     profitWithdrawBtn.innerHTML="Withdraw Now";
+     paymentPopupWinDiv.style.display="none";
+  }
+  paymentPopupWinDivActive=false;
+});
+
+}
+
+
+function profitAmountDepositNowClicked(){
+
+if(!profitDepositAmountInp.value){
+alert("Please enter withdraw amount");
+return false;
+}
+
+if(!profitDepositReasonInp.value){
+alert("Please enter withdraw reason");
+return false;
+}
+
+
+paymentPopupWinDiv.style.display="flex";
+transactionType="profitAmountDepositNow";
+setTimeout(()=>{
+  paymentPopupWinDivActive=true;
+},1000);
+
+}
+
+function profitAmountDepositNow(cashOrOnline){
+
+if(!profitDepositAmountInp.value){
+alert("Please enter withdraw amount");
+return false;
+}
+
+if(!profitDepositReasonInp.value){
+alert("Please enter withdraw reason");
+return false;
+}
+
+profitDepositBtn.innerHTML="...";
+$.post('php/profitAmountTransaction.php',
+{amount:profitDepositAmountInp.value,
+  reason:profitDepositReasonInp.value,
+treasurerId:"PICO7483",
+cashOrOnline:cashOrOnline},
+(data)=>{
+  console.log('profitAmountProfitNow():'+data);
+  if(data=="success"){
+     profitDepositBtn.innerHTML="Withdraw Now";
+     profitDepositAmountInp.value="";
+     profitDepositReasonInp.value="";
+     getFinancialData();
+     getFirst100Transaction();
+     paymentPopupWinDiv.style.display="none";
+  }else{
+     alert(data);
+     profitDepositBtn.innerHTML="Withdraw Now";
+     paymentPopupWinDiv.style.display="none";
+  }
+  paymentPopupWinDivActive=false;
+});
+
+}
+
+function  getFirst100Transaction(){
+
+$.get('php/getFirst100Transaction.php',
+{},
+(data)=>{
+//console.log('getFirst100Transaction():'+data);
+
+transactionList=JSON.parse(data);
+
+transactionListTbody.innerHTML="";
+transactionList.forEach((item,i)=>{
+   transactionListTbody.innerHTML+=`<tr>
+            <th class="nowrap">${item.dateTime}</th>
+            <th class="nowrap">${item.invested_balance_before_transaction}</th>
+            <th class="nowrap">${item.invested_balance_transaction_amount}</th>
+            <th class="nowrap">${item.invested_balance_after_transaction}</th>
+            <th class="nowrap">${item.profit_balance_before_transaction}</th>
+            <th class="nowrap">${item.profit_transaction_amount}</th>
+            <th class="nowrap">${item.profit_balance_after_transaction}</th>
+            <th class="nowrap">${item.reason}</th>
+            <th class="nowrap">${item.treasurerId}</th>
+          </tr>`;        
+});
+
+
+});
+
+
+
+}
+  </script>
+</body>
+</html>
+
+
+  <style>
+    :root{
+      --bg:#181a1f;          /* page background (dark gray) */
+      --panel:#21242b;       /* card background */
+      --panel-2:#2a2d35;     /* darker inner panel */
+      --text:#f0f0f0;        /* primary text */
+      --muted:#9ca3af;       /* muted text */
+      --accent:#38bdf8;      /* cyan accent */
+      --accent-2:#a78bfa;    /* purple accent */
+      --danger:#ef4444;      /* red */
+      --success:#22c55e;     /* green */
+      --border:#2f333d;      /* borders */
+      --shadow:0 8px 24px rgba(0,0,0,.45);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,Helvetica,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      line-height:1.5;
+    }
+    .container{max-width:1200px; margin:0 auto; padding:24px;}
+    .header{
+      display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+      margin-bottom:32px; padding-bottom:16px; border-bottom:1px solid var(--border);
+    }
+    .brand{
+      display:flex; align-items:center; gap:14px;
+    }
+    .logo{
+      width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      box-shadow:0 6px 20px rgba(56,189,248,.25);
+    }
+    .title{font-size:clamp(22px,4vw,36px); letter-spacing:.08em; font-weight:800;}
+    .subtitle{color:var(--muted); font-size:14px}
+
+    .balance{
+      background:var(--panel);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow);
+      border-radius:var(--radius);
+      padding:20px; min-width:260px;
+    }
+    .balance .label{color:var(--muted); font-size:13px; text-transform:uppercase; letter-spacing:.12em}
+    .balance .amount{font-size: clamp(22px, 4vw, 32px); font-weight:800; margin-top:6px}
+    .amount .rs{opacity:.9; font-weight:700}
+
+    .grid{
+      display:grid; gap:20px; grid-template-columns:repeat(2,minmax(0,1fr));
+      margin-bottom:32px;
+    }
+    @media (max-width:820px){ .grid{grid-template-columns:1fr} }
+
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:20px;
+      box-shadow:var(--shadow);
+    }
+    .card h2{margin:0 0 12px; font-size:18px}
+
+    .field{display:flex; flex-direction:column; gap:8px; margin:12px 0}
+    label{font-size:13px; color:var(--muted)}
+    input[type="number"], input[type="text"], textarea{
+      width:100%; background:var(--panel-2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:12px 14px;
+      outline:none; transition:border-color .2s, box-shadow .2s;
+    }
+    textarea{min-height:96px; resize:vertical}
+    input:focus, textarea:focus{border-color:var(--accent); box-shadow:0 0 0 4px rgba(56,189,248,.15)}
+
+    .row{display:flex; gap:10px; align-items:end; flex-wrap:wrap}
+    .row .field{flex:1}
+
+    .btn{
+      border:none; cursor:pointer; padding:12px 16px; border-radius:12px; font-weight:700; letter-spacing:.02em;
+      background:var(--panel-2); color:var(--text); border:1px solid var(--border);
+      transition:transform .05s ease, box-shadow .2s, background .2s, border-color .2s;
+    }
+    .btn:hover{border-color:var(--accent); box-shadow:0 6px 20px rgba(56,189,248,.15)}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{background:linear-gradient(135deg, rgba(56,189,248,.18), rgba(167,139,250,.18)); border-color:rgba(56,189,248,.45)}
+    .btn.success{background:linear-gradient(135deg, rgba(34,197,94,.22), rgba(56,189,248,.12)); border-color:rgba(34,197,94,.5)}
+    .btn.danger{background:linear-gradient(135deg, rgba(239,68,68,.25), rgba(167,139,250,.12)); border-color:rgba(239,68,68,.55)}
+
+    /* Table */
+    .table-wrap{
+      margin-top:22px; 
+      background:var(--panel); 
+      border:1px solid var(--border); 
+      border-radius:var(--radius); 
+      overflow:auto;
+      box-shadow:var(--shadow);
+    }
+    table{width:100%; border-collapse:separate; border-spacing:0}
+    thead th{position:sticky; top:0; background:var(--panel-2); z-index:1}
+    th, td{padding:12px 14px; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap}
+    th{font-size:12px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
+    tbody tr:hover{background:rgba(56,189,248,.08)}
+    .nowrap{white-space:nowrap}
+    .muted{color:var(--muted)}
+
+    /* Modal */
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.65); display:none; align-items:center; justify-content:center; padding:18px}
+    .modal{width:min(560px, 100%); background:var(--panel); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow)}
+    .modal header{display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--border)}
+    .modal main{padding:16px 18px}
+    .modal footer{display:flex; gap:10px; justify-content:flex-end; padding:14px 18px; border-top:1px solid var(--border)}
+
+
+            /* Popup container (hidden by default) */
+        .popup {
+            display: none; 
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Popup box */
+        .popup-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 250px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+        }
+
+        .popup-content h2 {
+            margin-top: 0;
+        }
+
+        /* Buttons */
+        .popup-content button {
+            margin: 10px;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .cash-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .online-btn {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .popup-content button:hover {
+            opacity: 0.8;
+        }
+  </style>
